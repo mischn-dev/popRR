@@ -147,9 +147,6 @@ Run `using Pkg; Pkg.add(["DataFrames", "Statistics", "CSV", "StatsBase"])` in yo
 
 ### Running the recombination rate estimation in julia environment by terminal 
 
- ![](https://github.com/mischn-dev/popRR/blob/docs/run_popRR_terminal_julia.gif)
-
-
 3 inputs have to be specified:
 
 1. the path to the *outFileName.vcf* generated previously
@@ -161,6 +158,8 @@ Run `using Pkg; Pkg.add(["DataFrames", "Statistics", "CSV", "StatsBase"])` in yo
         - **Important!** - [500,200,300,300,200,130] != [ 500 , 200 , 300 , 300 , 200 , 130 ] => no spaces allowed!
 
 The code in the `terminal` might look like:
+
+ ![](https://github.com/mischn-dev/popRR/blob/docs/run_popRR_terminal_julia.gif)
 
 ```
 # 20 threads used to speed up 
