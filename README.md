@@ -15,11 +15,8 @@ Highly similarities regarding the recombination rate were oberserved comparing t
     - one pool per population (or you create additional replications - we advise you to used different genotypes for each replicate created)
 
 
-
 ##
-##
-##
-
+![Workflow](https://cdn.pixabay.com/photo/2020/06/10/06/25/workflow-5281330_960_720.jpg)
 
 ## Work flow 
 
