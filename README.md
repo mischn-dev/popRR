@@ -4,7 +4,7 @@ This tool performs **genetic map** and **recombination rate** estimation from po
 Highly similarities regarding the recombination rate were oberserved comparing this pool based estimation and Haldane derived mappings
 
 
-![Requirements](https://smct-management.de/wp-content/uploads/2020/04/Minium-Requirements-IATF-16949-1024x384.jpeg.webp | height=100)
+![Requirements](https://smct-management.de/wp-content/uploads/2020/04/Minium-Requirements-IATF-16949-1024x384.jpeg.webp)
 
 ## Requirements / experimental set up 
 
