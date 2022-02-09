@@ -134,4 +134,4 @@ So our recommendations is to use the julia function package - save some energy a
 
 ![sqirrel](https://naturschutz.ch/wp-content/uploads/2018/10/cropped-Eichh%C3%B6rnchen--1068x580.jpg | height=300)
 
-![](https://gyazo.com/eb5c5741b6a9a16c692170a41a49c858.png =250x250)
+![](https://github.com/mischn-dev/popRR/blob/docs/install_juliaPackages.gif)
