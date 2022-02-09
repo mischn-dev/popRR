@@ -130,8 +130,47 @@ The names of your *samples* can also look like `/Data/recrate/sample1` instead o
 
 You have the choice to run *popRR* it either in `julia` or `R`. The result is the same, but the computational time is quite drastically decreased in the `julia` environment (about 20 to 100 times faster)
 
-So our recommendations is to use the julia function package - save some energy and resources by smart programming :)
+So our recommendation: use the julia function package - save some energy and resources by smart programming :)
 
-![sqirrel](https://naturschutz.ch/wp-content/uploads/2018/10/cropped-Eichh%C3%B6rnchen--1068x580.jpg | height=300)
+To run the `julia` code, you need to install some required packages.
 
-![](https://gyazo.com/eb5c5741b6a9a16c692170a41a49c858.png =250x250)
+How it is done is ilustrated in this video:
+
+![](https://github.com/mischn-dev/popRR/blob/docs/install_juliaPackages.gif)
+
+Run `using Pkg; Pkg.add(["DataFrames", "Statistics", "CSV", "StatsBase"])` in your terminal after opening `julia`
+
+ **HINT** stating `julia -t 4` will make julia running with 4 threads - this will speed things up 
+
+ chose as many cores as you desire to use or your computer provides
+
+
+### Running the recombination rate estimation in julia environment by terminal 
+
+ ![](https://github.com/mischn-dev/popRR/blob/docs/run_popRR_terminal_julia.gif)
+
+
+3 inputs have to be specified:
+
+1. the path to the *outFileName.vcf* generated previously
+2. the window size in mega base pairs (e.g. 10) 
+    - genomic windows with a sliding window approach of the specified size will be generated and a median recombination rate will be calculated for each window
+3. the population size for **each** sample in the *outFileName.vcf* file 
+    - in the scenario where each population as the *same number of genotypes sampled*, you can also give simply a single value - e.g. 500
+    - in the scenario where each population consists of different numbers of genotypes, provide a vector of values with a similar length to numbers sampled - e.g. [500,200,300,300,200,130]
+        - **Important!** - [500,200,300,300,200,130] != [ 500 , 200 , 300 , 300 , 200 , 130 ] => no spaces allowed!
+
+The code in the `terminal` might look like:
+
+```
+# 20 threads used to speed up 
+julia -t 20 popRR_julia.jl outFileName.vcf 5 [300,100,50] 
+```
+
+The code will generate 3 output files;
+
+1. *RecRate.txt*
+
+2. *Markercount.txt*
+
+3. *SingleSNPinfo.txt*
