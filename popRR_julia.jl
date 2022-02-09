@@ -1,11 +1,14 @@
-# perform the snp calling using a variant caller that can create allelic depth values for each locus (bcftools version 1.10.2)
-bcftools mpileup -Ou -q 20 -Q 25 -a FORMAT/AD  -f $REF $mydir/*filtered.sorted.bam | bcftools call -vm -Ov > $mydir/variants.vcf
-# extract the alleic depth information from the raw vcf file -- only 2 alleles per locus allowed
-vcftools --vcf /mnt/d/GeneticMapProject/4-SimReads/SNPcalling/SNPcalling_.vcf --out  /mnt/d/GeneticMapProject/4-SimReads/SNPcalling/outfile --max-alleles 2 --min-alleles 2 --minQ 40 --extract-FORMAT-info AD
+input = ARGS[1] # path to input file with chr, pos and AD infos
+windowsize = parse(Int64, ARGS[2]) # the genomic window size the median recombination rate should be calculated in
+Popsize = ARGS[3] # the location of a file where the population size per sample is stored in.
 
+if isempty(Popsize); println("ERROR - inputs not defined!"); end
+
+println("\n The file to progress is $input. \n The recombination rate will be calculated in $windowsize MB windows. \n You specified the sample population size as $Popsize. \n If anything is incorrect, please interrupt with ctrl+c and change your inputs")
 
 using DataFrames, Statistics, CSV, StatsBase
 
+println("$(Popsize[1]), $(typeof(Popsize[1]))")
 
 function popRR(input, windowsize=10, Popsize=300)
                 # load the file to the julia env - one genotype per file expected 
@@ -222,13 +225,39 @@ function popRR(input, windowsize=10, Popsize=300)
 
 # end of function
 
+function writeDict(disk, ram, how="text")
+    if how == "text"
+          for i in keys(ram)
+                                   println(i)
+                                   if typeof(ram[i]) == DataFrame
+                                   CSV.write(string(disk,string(i),".txt"),ram[i];delim = '\t')
+                                   else
+                                     writedlm(string(disk,string(i),".txt"),ram[i], '\t')
+                                   end
+                   end
+    elseif how == "csv"
+             for i in keys(ram)
+                             println(i)
+                             if typeof(ram[i]) == DataFrame
+                             CSV.write(string(disk,string(i),".csv"),ram[i];delim = ',')
+                           else
+                             writedlm(string(disk,string(i),".txt"),ram[i], ',')
+                            end
+            end
+
+    end
+ end
 
 ### example call style 
 ## input values 
- input = "D:/GeneticMapProject/4-SimReads/SNPcalling/outfile.AD.FORMAT"
- windowsize = 10 # in MB 
- Popsize = [300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50] # population size 
+ #input = "D:/GeneticMapProject/4-SimReads/SNPcalling/outfile.AD.FORMAT"
+ #windowsize = 10 # in MB 
+ #Popsize = [300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50] # population size 
 
- result = popRR(input, windowsize, Popsize)
+println("running the recombination rate estimations \n")
+result = popRR(input, windowsize, Popsize)
 
-result = @time popRR(input, 50, Popsize)
+# write to file 
+writeDict(string(pwd(), "/"), result)
+
+println("files written to file in $(pwd())")
