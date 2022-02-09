@@ -128,9 +128,9 @@ The names of your *samples* can also look like `/Data/recrate/sample1` instead o
 
 ## Perform the **recombination rate estimation** and the **genetic map** estimation using popRR functions
 
-You as *End User* have the choice to run it either in `julia` or `R`. The result is the same, but the computational time is quite drastically decreased in the `julia` environment (about 20 to 100 times faster)
+You have the choice to run *popRR* it either in `julia` or `R`. The result is the same, but the computational time is quite drastically decreased in the `julia` environment (about 20 to 100 times faster)
 
 So our recommendations is to use the julia function package - save some energy and resources by smart programming :)
 
-![sqirrel](https://naturschutz.ch/wp-content/uploads/2018/10/cropped-Eichh%C3%B6rnchen--1068x580.jpg)
+![sqirrel](https://naturschutz.ch/wp-content/uploads/2018/10/cropped-Eichh%C3%B6rnchen--1068x580.jpg | height=300)
 
