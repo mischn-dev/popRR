@@ -4,10 +4,13 @@ This tool performs **genetic map** and **recombination rate** estimation from po
 Highly similarities regarding the recombination rate were oberserved comparing this pool based estimation and Haldane derived mappings
 
 
+![Requirements](https://smct-management.de/wp-content/uploads/2020/04/Minium-Requirements-IATF-16949-1024x384.jpeg.webp | height=100)
+
 ## Requirements / experimental set up 
 
 - a crossing population beyond F2
 - the sampling of a represetive number of genotypes for each population ( e.g., in a population of 10,000 siblings, 200 to 500 genotypes should be selected for testing)
+- a **reference genome**
 - whole genome pool sequencing data with a decend coverage per locus (50x are advised; see https://github.com/mischn-dev/HAFcall if you are planing to reduce sequencing levels to 5 or 10x)
     - one pool per population (or you create additional replications - we advise you to used different genotypes for each replicate created)
 
@@ -20,7 +23,7 @@ Highly similarities regarding the recombination rate were oberserved comparing t
 
 ## Work flow 
 
-Perform **trimming** of your sequence dat if required and progress with the **alignment**. 
+Perform **trimming** of your sequence data if required and progress with the **alignment**. 
 For complex plant genomes like, maize, barley or wheat, we observed *bwa* and *bowtie2* to perform best.
 
 **Filter your** aligned reads throughly. The recombination rate estimations depend on this filtering step, as following errors might reduce the accuracy:
@@ -55,7 +58,7 @@ or using your own script. We observed *sambamba* to be very fast and accurate, s
 
 Find further infos for the filtering by sambamba here <https://github.com/biod/sambamba/wiki/%5Bsambamba-view%5D-Filter-expression-syntax>
 
-*Otherwise, you can also use **samtools** to filter your alignments by using this pipeline:*
+*Otherwise, you can also use **samtools** to filter your alignments by using this pipeline:* 
 
 ```
 # X = numer of threads to use
@@ -67,6 +70,8 @@ samtools markdup -@ X -r filtered.bam filtered_markdup.bam
 # sort by position 
 samtools sort -@ X -o filtered_sorted.bam filtered_markdup.bam 
 ```
+
+What does -F 2034 mean? - have a look here <https://broadinstitute.github.io/picard/explain-flags.html>
 
 
 ### **Variant calling**
@@ -85,7 +90,50 @@ mydir="StoreFolder" # e.g. ~/Documents
 bcftools mpileup -Ov -q 25 -Q 30 -a FORMAT/AD -I -f $REF $mydir/*filtered_sorted.bam | bcftools call -vm -Ov > $mydir/variants.vcf
 ```
 
+**Additional hints for the SNP calling:**
+- if available, use an *SNP reference map*, like <http://ftp.ensemblgenomes.org/pub/plants/release-52/variation/vcf/hordeum_vulgare/>
+    - this is helpful to avoid false positive detections and will improve the overall recombination rate accuracy
+- exclude Indels, as these tend to have higher false positive rates
+
+
 
 ## Variant filtering and data preparaption
 
+
+To fit into the desired data format and filter out low quality SNPs, the uncompressed variant calling format (*vcf*) files need to be processed. 
+
+You can use either `bcftools` or `vcftools` (<http://vcftools.sourceforge.net/>) to complete the task.
+Use on of either functions:
+```
+# the vcftools way 
+vcftools --vcf variants.vcf --out outfFileName --max-alleles 2 --min-alleles 2 --minQ 40 --extract-FORMAT-info AD
+
+# the bcftools way
+bcftools view -m2 -M2 -v snps -o variants_biallele.vcf variants.vcf
+bcftools query -i 'QUAL>40' -f '%CHROM\t%POS\t[%AD\t]\n' -o outFileName.vcf variants_biallele.vcf
+```
+
+
+Besides the *Position* (Chromosome and pysical position on the reference genome), the *allelic depth AD* is required for each sample.
+
+The final table should look like:
+| CHROM | POS  | Sample1  | Sample2 | Sample3 |
+| ------- | --- | --- | --- | --- |
+chr2H |	268269	|127,98 | 	175,128	|187,119 |
+chr2H |	352795	| 133,79	| 190,173	| 214,159 |
+chr3H |	556914877 | 116,111 |	133,178 |	159,157 |
+chr5 |	582298638 | 120,115	| 157,145 |	147,153|
+
+
+The names of your *samples* can also look like `/Data/recrate/sample1` instead of `Sample1` - both are fine
+
+
+
+## Perform the **recombination rate estimation** and the **genetic map** estimation using popRR functions
+
+You as *End User* have the choice to run it either in `julia` or `R`. The result is the same, but the computational time is quite drastically decreased in the `julia` environment (about 20 to 100 times faster)
+
+So our recommendations is to use the julia function package - save some energy and resources by smart programming :)
+
 ![sqirrel](https://naturschutz.ch/wp-content/uploads/2018/10/cropped-Eichh%C3%B6rnchen--1068x580.jpg)
+
