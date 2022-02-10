@@ -174,26 +174,68 @@ The script performs a transformation of the *recombination rate* in accordance t
 ![Formula](https://github.com/mischn-dev/popRR/blob/mischn-dev/popRR/docs/adjustment_formula.jpg)
 
 
-The code will generate 3 output files;
+## Output 
+
+The code will generate 3 output files in your current work folder (*the info of your folder will be printed to the screen*);
 
 1. ***RecRate.txt***
 
-| Group | Chr  | pos  | Sample1 | Sample2 | Sample3 |
-| ----- | ---- | ---- | ------- | ------- | ------- |
-| 1     | chr2 | 20000| 4.39    | 3.81    |  5.78   |
-|   2   | chr2 | 50000| 2.54    | 2.68    | 3.01    |
-| .. | .. | .. | .. | .. | .. | 
-| 60 | chr5 | 7000000 | 2.21 | 0.45 | 3.45 |
+    | Group | Chr  | pos  | Sample1 | Sample2 | Sample3 |
+    | ----- | ---- | ---- | ------- | ------- | ------- |
+    | 1     | chr2 | 20000| 4.39    | 3.81    |  5.78   |
+    |   2   | chr2 | 50000| 2.54    | 2.68    | 3.01    |
+    | .. | .. | .. | .. | .. | .. | 
+    | 60 | chr5 | 7000000 | 2.21 | 0.45 | 3.45 |
+
+
+
+
+2. ***Markercount.txt***
+
+    | Group | Chr  | pos  | Sample1 | Sample2 | Sample3 |
+    | ----- | ---- | ---- | ------- | ------- | ------- |
+    | 1     | chr2 | 20000| 222    |  220   |  243   |
+    |   2   | chr2 | 50000| 95    | 102   | 100    |
+    | .. | .. | .. | .. | .. | .. | 
+    | 60 | chr5 | 7000000 | 501 | 620 | 488 |
+
+
+    In *RecRate.txt* and *Markercount.txt*, you might observe `NA` values for a Group:Sample combination - this means there were no SNPs observed in this *Group* for the particular sample
+
+
+3. ***SingleSNPinfo.txt***
+
+    |Chr |POS	|Readcount	|Ref	|Alt	|DistReal	|GeneticMapPosition |RR	|sample   |
+    | ----- | ---- | ---- | ------- | ------- | ------- | --- | --- | --- | 
+    | chr2 |	268269	| 225	| 0.5644 | 0.4355	| 0.0 | 0.0	| 0.0	| *sample1* |
+    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
+    | chr2H |	352927 |	227	 | 0.5726 |	0.4273	| 132.0 |	3.659	| 2.3 | *sample1*
+    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
+    | chr2H |	485482145 |	154	 | 0.4289 |	0.5711	| 4500 |	158.45	| 1.1 | *sample1*
+    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
+    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
+    | chr2 |	352927	| 221	| 0.5342 | 0.4658	| 132.0 | 2.112	| 1.12	| *sample2* |
+    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
+    
+
+
+
+
+### Explaination of created output:
 
 | Column name | Description |
 | --- | --- |
 | Group           | The genomic block, according to chromosome, physical position and the selected window size|
 | Chr             | The chromosome the *Group* is located on |
 | pos             | The mean Position of SNPs aggregated to a *Group*|
-| Sample 1..to..X | The median recombination rate in the *Group*, each sample's value is reported in a seperate column. The name of the column refers to the sample name in the *input* file|
+| Sample 1..to..X | The *median recombination rate* or *sum of SNPs* in the *Group*, each sample's value is reported in a seperate column. The name of the column refers to the sample name in the *input* file|
+|.. | **SingleSNPinfo.txt** file:|
+|Chr	| The chromosome the SNP is located on |
+|POS	| The physical position of the SNP |
+|Readcount	| The number of reads covering this locus|
+|Ref	| the allele frequency of the *reference* allele |
+|Alt	| the allele frequency of the *alternative* allele |
+|GeneticMapPosition | The genetic position of the SNP | 
+|RR	 | The recombination rate observed for this SNP |
+|sample    | The sample in which this information was collected - analog to *Sample 1 ..to..X*|
 
-It might happen that you observe an `NA` value for a Group:Sample combination - this means there were no SNPs covered in this region for the particular sample
-
-2. ***Markercount.txt***
-
-3. ***SingleSNPinfo.txt***
