@@ -1,14 +1,16 @@
+println("Load libraries..")
+using DataFrames, Statistics, CSV, StatsBase
+
 input = ARGS[1] # path to input file with chr, pos and AD infos
 windowsize = parse(Int64, ARGS[2]) # the genomic window size the median recombination rate should be calculated in
-Popsize = ARGS[3] # the location of a file where the population size per sample is stored in.
+Popsize = CSV.read(ARGS[3], DataFrame; header=false) # the location of a file where the population size per sample is stored in.
 
 if isempty(Popsize); println("ERROR - inputs not defined!"); end
 
+Popsize = Popsize[!,1]
+
 println("\n The file to progress is $input. \n The recombination rate will be calculated in $windowsize MB windows. \n You specified the sample population size as $Popsize. \n If anything is incorrect, please interrupt with ctrl+c and change your inputs")
 
-using DataFrames, Statistics, CSV, StatsBase
-
-println("$(Popsize[1]), $(typeof(Popsize[1]))")
 
 function popRR(input, windowsize=10, Popsize=300)
                 # load the file to the julia env - one genotype per file expected 
@@ -24,9 +26,9 @@ function popRR(input, windowsize=10, Popsize=300)
                 for I in 3:length(nam)
 
                                                     # the user might give either a vector of population sizes or a single value - if all samples have the same population size
-                                                    if typeof(Popsize) == Int64
-                                                                                popsize = Popsize
-                                                    elseif  typeof(Popsize) == Vector{Int64}
+                                                    if length(Popsize) == 1
+                                                                                popsize = Popsize[1]
+                                                    elseif  length(Popsize) > 1
                                                                                 popsize = Popsize[I-2]
                                                     end
 
@@ -214,6 +216,20 @@ function popRR(input, windowsize=10, Popsize=300)
                 sort!(BASE1, [:Chr, :pos])
                 sort!(BASE2, [:Chr, :pos])
 
+                # delete column 1 from the BASE1 and BASE2
+                select!(BASE1, Not(1))
+                select!(BASE2, Not(1))
+
+                # rename the columns of MPO 
+                rename!(MPO, :LDposReal2 => :GeneticMapPosition) 
+                # remove the distreal column
+                select!(MPO, Not(:DistReal))
+                # round values 
+                MPO.Ref .= round.(MPO.Ref; digits=4)
+                MPO.Alt .= round.(MPO.Alt; digits=4)
+                MPO.GeneticMapPosition .= round.(MPO.GeneticMapPosition; digits=6)
+                MPO.RR .= round.(MPO.RR; digits=6)
+
                 # push RR and Markercount into a new dict 
                 out = Dict()
                 out[:RecRate] = BASE1
@@ -260,4 +276,4 @@ result = popRR(input, windowsize, Popsize)
 # write to file 
 writeDict(string(pwd(), "/"), result)
 
-println("files written to file in $(pwd())")
+println("files written to folder in $(pwd())")

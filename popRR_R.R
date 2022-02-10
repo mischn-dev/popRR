@@ -1,7 +1,9 @@
-# perform the snp calling using a variant caller that can create allelic depth values for each locus (bcftools version 1.10.2)
-#bcftools mpileup -Ou -q 20 -Q 25 -a FORMAT/AD  -f $REF $mydir/*filtered.sorted.bam | bcftools call -vm -Ov > $mydir/variants.vcf
-# extract the alleic depth information from the raw vcf file -- only 2 alleles per locus allowed
-#vcftools --vcf /mnt/d/GeneticMapProject/4-SimReads/SNPcalling/SNPcalling_.vcf --out  /mnt/d/GeneticMapProject/4-SimReads/SNPcalling/outfile --max-alleles 2 --min-alleles 2 --minQ 40 --extract-FORMAT-info AD
+# load arguments from external source (RScript)
+args <- commandArgs(trailingOnly = TRUE)
+
+input = args[1] # path to file
+winSize = args[2] # genomic window size to work on
+Popsize = args[3] # path to text file with info
 
 ## load packages 
 # data.table
@@ -14,13 +16,19 @@ if (any(installed.packages()[,1] == "data.table")) {
                                                     }
 
 # stringr
-library(stringr)
+if (any(installed.packages()[,1] == "data.table")) { 
+                                                    library(stringr)
+  
+                                                  }else{
+                                                    install.packages("stringr")
+                                                    library(stringr)
+                                                  }
 
 ### example call style 
 ## input values 
-input = "D:/GeneticMapProject/4-SimReads/SNPcalling/outfile.AD.FORMAT"
-windowsize = 50 # in MB 
-Popsize = c(300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50) # population size 
+#input = "D:/GeneticMapProject/4-SimReads/SNPcalling/outfile.AD.FORMAT"
+#windowsize = 50 # in MB 
+#Popsize = c(300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50) # population size 
 
 # result = popRR(input, windowsize, Popsize)
 
@@ -41,10 +49,10 @@ popRR = function(input, windowsize=10, Popsize){
                         for (I in 3:length(nam)){
                                                 
                                                 # Popsize might be either a single integer value or a vector of integers - depending on user input 
-                                                if (is.vector(Popsize)){
+                                                if (length(Popsize) > 1){
                                                                         popsize = Popsize[I-2]
                                                                  }else {
-                                                                        popsize = Popsize
+                                                                        popsize = Popsize[1]
                                                                  }
                                                 
                                                 print(paste("Calling RR for sample", nam[I]))  
@@ -236,6 +244,20 @@ popRR = function(input, windowsize=10, Popsize){
                               BASE1 = BASE1[order(BASE1$Chr, BASE1$pos),]
                               BASE2 = BASE2[order(BASE2$Chr, BASE2$pos),]
                               
+                              # remove the match column
+                              BASE1 = BASE1[,-1]
+                              BASE2 = BASE2[,-1]
+                              
+                              # remove the distreal column
+                              MPO = MPO[,-c(6,7,8,9,10)]
+                              # rename the columns of MPO 
+                              colnames(MPO)[6] = "GeneticMapPosition"
+                              # round values 
+                              MPO$Ref = round(MPO$Ref, digits=4)
+                              MPO$Alt = round(MPO$Alt, digits=4)
+                              MPO$GeneticMapPosition = round(MPO$GeneticMapPosition, digits=6)
+                              MPO$RR = round(MPO$RR, digits=6)
+                              
                               out = list()
                               out[["Recrate"]] = BASE1
                               out[["Markercount"]] = BASE2 
@@ -244,7 +266,17 @@ popRR = function(input, windowsize=10, Popsize){
                               return(out)
 } # function popRR
 
-start_time <- Sys.time()
-result = popRR(input, 50, Popsize = Popsize)
-end_time <- Sys.time()
-end_time - start_time
+result = popRR(input, windowsize = winSize, Popsize = Popsize)
+
+
+#write result to file 
+loc = getwd()
+w1 = paste(loc, "Recrate.txt", sep = "/")
+w2 = paste(loc, "Markercount.txt", sep = "/")
+w3 = paste(loc, "SingleSNPinfo.txt", sep = "/")
+
+write.table(result$Recrate, w1, quote = F, row.names = F)
+write.table(result$Markercount, w2, quote = F, row.names = F)
+write.table(result$SingleSNPinfo, w3, quote = F, row.names = F)
+
+
