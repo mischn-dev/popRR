@@ -1,7 +1,7 @@
 # popRR - recombination estimation from pooled genotyping and sequencing
 
 This tool performs **genetic map** and **recombination rate** estimation from pooled population samples.
-Highly similarities regarding the recombination rate were oberserved comparing this pool based estimation and Haldane derived mappings
+Highly similarities regarding the recombination rate were observed comparing this pool-based estimation, and a Haldane derived mapping and recombination rate estimation approach.
 
 
 ![Requirements](https://smct-management.de/wp-content/uploads/2020/04/Minium-Requirements-IATF-16949-1024x384.jpeg.webp)
@@ -9,32 +9,32 @@ Highly similarities regarding the recombination rate were oberserved comparing t
 ## Requirements / experimental set up 
 
 - a crossing population beyond F2
-- the sampling of a represetive number of genotypes for each population ( e.g., in a population of 10,000 siblings, 200 to 500 genotypes should be selected for testing)
+- the sampling of a representative number of genotypes for each population ( e.g., in a population of 10,000 siblings, 200 to 500 genotypes should be selected for testing)
 - a **reference genome**
-- whole genome pool sequencing data with a decend coverage per locus (50x are advised; see https://github.com/mischn-dev/HAFcall if you are planing to reduce sequencing levels to 5 or 10x)
-    - one pool per population (or you create additional replications - we advise you to used different genotypes for each replicate created)
+- whole genome pool sequencing data with a decent coverage per locus (50x are advised; see https://github.com/mischn-dev/HAFcall if you are planning to reduce sequencing levels to 5 or 10x)
+    - one pool per population (or you create additional replications - we advise you to use different genotypes for each replicate created)
 
 
 ##
 ![Workflow](https://cdn.pixabay.com/photo/2020/06/10/06/25/workflow-5281330_960_720.jpg)
 
-## Work flow 
+## Workflow 
 
 Perform **trimming** of your sequence data if required and progress with the **alignment**. 
-For complex plant genomes like, maize, barley or wheat, we observed *bwa* and *bowtie2* to perform best.
+For complex plant genomes like maize, barley, or wheat, we observed *bwa* and *bowtie2* to perform best.
 
-**Filter your** aligned reads throughly. The recombination rate estimations depend on this filtering step, as following errors might reduce the accuracy:
+**Filter your** aligned reads thoroughly. The recombination rate estimations depend on this filtering step - we want errors to be reduced to retain higher accuracy:
 
 - secondary alignments
 - supplementary alignments
-- low quality alignments
+- low-quality alignments
 - duplicated fragments
 
-Contrasting to typical variant calling of homogygote genotypes, we need to make sure the ratio of *reference* to *alternative* base calls is as unbiased as possible.
+Contrasting to the typical variant calling of homozygote genotypes, we need to make sure the ratio of *reference* to *alternative* base calls is as unbiased as possible.
 
-We will generally expect `REF/ALT` variant calls of `20/30` or `10/40`, contrasting to `2/48` - what we would expect for an homozygote single genotyping.
+We will generally expect `REF/ALT` variant calls of `20/30` or `10/40`, contrasting to `2/48` - what we would expect for a homozygote single genotyping.
 
-So it is very crucial to maintain high quality from the alignment and the variant calling, as biases introduced by the alignment might directly impact the accuracy of the recombinate rate estimation.
+So it is very crucial to maintain high quality from the alignment and the variant calling, as biases introduced by the alignment might directly impact the accuracy of the recombination rate estimation.
 
 You can filter your aligned bam file by applying 
 
@@ -53,12 +53,12 @@ sambamba_v0.8.2 sort -t X -p -o filtered_sorted.bam sambamba_filtered_markdup.ba
 ```
 or using your own script. We observed *sambamba* to be very fast and accurate, so we suggest using this package <https://lomereiter.github.io/sambamba/>
 
-Find further infos for the filtering by sambamba here <https://github.com/biod/sambamba/wiki/%5Bsambamba-view%5D-Filter-expression-syntax>
+Find further information on filtering by sambamba here <https://github.com/biod/sambamba/wiki/%5Bsambamba-view%5D-Filter-expression-syntax>
 
 *Otherwise, you can also use **samtools** to filter your alignments by using this pipeline:* 
 
 ```
-# X = numer of threads to use
+# X = number of threads to use
 
 # filter the alignments
 samtools view -F 2304 -q 30 -f 1 -@ X -o filtered.bam ALIGNED.bam 
@@ -75,7 +75,7 @@ What does -F 2034 mean? - have a look here <https://broadinstitute.github.io/pic
 
 If possible, call the variants of *all* pool samples in one run.
 
-The recombination rate estimation for each variant locus depends on the **allelic depth** tag *AD*, so ensure your chosen variant caller supports this output format. *Bcftools* is the option used in the procudre of validating popRR.
+The recombination rate estimation for each variant locus depends on the **allelic depth** tag *AD*, so ensure your chosen variant caller supports this output format. *Bcftools* is the option used in the procedure of validating popRR.
 
 The code to generate the variant calls with *bcftools* is:
 
@@ -90,17 +90,17 @@ bcftools mpileup -Ov -q 25 -Q 30 -a FORMAT/AD -I -f $REF $mydir/*filtered_sorted
 **Additional hints for the SNP calling:**
 - if available, use an *SNP reference map*, like <http://ftp.ensemblgenomes.org/pub/plants/release-52/variation/vcf/hordeum_vulgare/>
     - this is helpful to avoid false positive detections and will improve the overall recombination rate accuracy
-- exclude Indels, as these tend to have higher false positive rates
+- exclude Indels, as these tend to have higher false-positive rates
 
 
 
-## Variant filtering and data preparaption
+## Variant filtering and data preparation
 
 
-To fit into the desired data format and filter out low quality SNPs, the uncompressed variant calling format (*vcf*) files need to be processed. 
+To fit into the desired data format and filter out low-quality SNPs, the uncompressed variant calling format (*vcf*) files must be processed. 
 
 You can use either `bcftools` or `vcftools` (<http://vcftools.sourceforge.net/>) to complete the task.
-Use on of either functions:
+Use on of either function:
 ```
 # the vcftools way 
 vcftools --vcf variants.vcf --out outfFileName --max-alleles 2 --min-alleles 2 --minQ 40 --extract-FORMAT-info AD
@@ -111,14 +111,14 @@ bcftools query -i 'QUAL>40' -f '%CHROM\t%POS\t[%AD\t]\n' -o outFileName.vcf vari
 ```
 
 
-Besides the *Position* (Chromosome and pysical position on the reference genome), the *allelic depth AD* is required for each sample.
+Besides the *Position* (Chromosome and physical position on the reference genome), the *allelic depth AD* is required for each sample.
 
 The final table should look like:
 | CHROM | POS  | Sample1  | Sample2 | Sample3 |
 | ------- | --- | --- | --- | --- |
-chr2H |	268269	|127,98 | 	175,128	|187,119 |
-chr2H |	352795	| 133,79	| 190,173	| 214,159 |
-chr3H |	556914877 | 116,111 |	133,178 |	159,157 |
+chr2 |	268269	|127,98 | 	175,128	|187,119 |
+chr2 |	352795	| 133,79	| 190,173	| 214,159 |
+chr3 |	556914877 | 116,111 |	133,178 |	159,157 |
 chr5 |	582298638 | 120,115	| 157,145 |	147,153|
 
 
@@ -128,13 +128,13 @@ The names of your *samples* can also look like `/Data/recrate/sample1` instead o
 
 ## Perform the **recombination rate estimation** and the **genetic map** estimation using popRR functions
 
-You have the choice to run *popRR* it either in `julia` or `R`. The result is the same, but the computational time is quite drastically decreased in the `julia` environment (about 20 to 100 times faster)
+You have the choice to run *popRR* either in `julia` or `R`. The result is the same, but the computational time is quite drastically decreased in the `julia` environment (about 20 to 100 times faster)
 
 So our recommendation: use the julia function package - save some energy and resources by smart programming :)
 
 To run the `julia` code, you need to install some required packages.
 
-How it is done is ilustrated in this video:
+How it is done is illustrated in this video:
 
 ![](https://github.com/mischn-dev/popRR/blob/docs/install_juliaPackages.gif)
 
@@ -150,12 +150,13 @@ Run `using Pkg; Pkg.add(["DataFrames", "Statistics", "CSV", "StatsBase"])` in yo
 3 inputs have to be specified:
 
 1. the path to the *outFileName.vcf* generated previously
-2. the window size in mega base pairs (e.g. 10) 
-    - genomic windows with a sliding window approach of the specified size will be generated and a median recombination rate will be calculated for each window
+2. the window size in megabase pairs (e.g. 10) 
+    - genomic windows with a sliding window approach of the specified size will be generated, and a median recombination rate will be calculated for each window
 3. the population size for **each** sample in the *outFileName.vcf* file 
     - in the scenario where each population as the *same number of genotypes sampled*, you can also give simply a single value - e.g. 500
-    - in the scenario where each population consists of different numbers of genotypes, provide a vector of values with a similar length to numbers sampled - e.g. [500,200,300,300,200,130]
-        - **Important!** - [500,200,300,300,200,130] != [ 500 , 200 , 300 , 300 , 200 , 130 ] => no spaces allowed!
+        - find an example here: <https://github.com/mischn-dev/popRR/blob/mischn-dev/popRR/example/samplelist_1_value_for_all_samples.txt>
+    - in the scenario where each population consists of different numbers of genotypes, provide a vector of values with a similar length to numbers sampled - e.g. 
+        - find an example here: <https://github.com/mischn-dev/popRR/blob/mischn-dev/popRR/example/samplelist_unique_value_for_each_sample.txt>
 
 The code in the `terminal` might look like:
 
@@ -163,13 +164,36 @@ The code in the `terminal` might look like:
 
 ```
 # 20 threads used to speed up 
-julia -t 20 popRR_julia.jl outFileName.vcf 5 [300,100,50] 
+julia -t 20 popRR_julia.jl outFileName.vcf 5 300
+
+# works the same way in linux terminal & windows command line
 ```
+
+The script performs a transformation of the *recombination rate* in accordance to the genotyping depth (number of SNPs) and population size (number of individuals per pool sample)
+
+![Formula](https://github.com/mischn-dev/popRR/blob/mischn-dev/popRR/docs/adjustment_formula.jpg)
+
 
 The code will generate 3 output files;
 
-1. *RecRate.txt*
+1. ***RecRate.txt***
 
-2. *Markercount.txt*
+| Group | Chr  | pos  | Sample1 | Sample2 | Sample3 |
+| ----- | ---- | ---- | ------- | ------- | ------- |
+| 1     | chr2 | 20000| 4.39    | 3.81    |  5.78   |
+|   2   | chr2 | 50000| 2.54    | 2.68    | 3.01    |
+| .. | .. | .. | .. | .. | .. | 
+| 60 | chr5 | 7000000 | 2.21 | 0.45 | 3.45 |
 
-3. *SingleSNPinfo.txt*
+| Column name | Description |
+| --- | --- |
+| Group           | The genomic block, according to chromosome, physical position and the selected window size|
+| Chr             | The chromosome the *Group* is located on |
+| pos             | The mean Position of SNPs aggregated to a *Group*|
+| Sample 1..to..X | The median recombination rate in the *Group*, each sample's value is reported in a seperate column. The name of the column refers to the sample name in the *input* file|
+
+It might happen that you observe an `NA` value for a Group:Sample combination - this means there were no SNPs covered in this region for the particular sample
+
+2. ***Markercount.txt***
+
+3. ***SingleSNPinfo.txt***
