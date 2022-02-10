@@ -20,10 +20,10 @@ rr4 = melt(rr, id.vars = c("Group", "Chr", "pos"))
 # calc mean value for each sample 
 mv <- ddply(rr4, "variable", summarise, grp.mean=mean(value, na.rm = T))
 
-p1 = ggplot(rr5, aes(x=value, fill=variable)) + geom_density(alpha=0.4) + theme_minimal() + theme(legend.position = c(0.7, 0.7)) + geom_vline(data=mv2, aes(xintercept=grp.mean, color=variable),linetype="dashed") + 
+p1 = ggplot(rr4, aes(x=value, fill=variable)) + geom_density(alpha=0.4) + theme_minimal() + theme(legend.position = c(0.7, 0.7)) + geom_vline(data=mv, aes(xintercept=grp.mean, color=variable),linetype="dashed") + 
   xlab("recombination rate in window [cM/MB]") +  ylab("Count") + ggtitle("Recombination rate distribution") + labs(fill="Sample", color="Sample") 
 
-p2 = ggplot(rr5, aes(x=pos, y=value, color = variable)) + facet_wrap(.~Chr, ncol=1) + geom_line() + geom_point(size=1.1) + labs(color = "Sample") + ylab("Recombination rate [cM/MB]") + xlab("Physical position on chromosome") +
+p2 = ggplot(rr4, aes(x=pos, y=value, color = variable)) + facet_wrap(.~Chr, ncol=1) + geom_line() + geom_point(size=1.1) + labs(color = "Sample") + ylab("Recombination rate [cM/MB]") + xlab("Physical position on chromosome") +
   theme_minimal() + theme(legend.position = "none", axis.ticks.x=element_blank(), axis.text.x=element_blank()) 
 
 
