@@ -265,14 +265,14 @@ The code will generate 3 output files in your current work folder (*the informat
 
 
 
-### Explaination of created output:
+### Explanation of created output:
 
 | Column name | Description |
 | --- | --- |
 | Group           | The genomic block, according to chromosome, physical position and the selected window size [id]|
 | Chr             | The chromosome the *Group* is located on |
 | pos             | The mean Position of SNPs aggregated to a *Group* [bp]|
-| Sample 1..to..X | The *median recombination rate* or *sum of SNPs* in the *Group*, each sample's value is reported in a seperate column. The name of the column refers to the sample name in the *input* file [cM/MB] or [count]|
+| Sample 1..to..X | The *median recombination rate* or *sum of SNPs* in the *Group*, each sample's value is reported in a separate column. The name of the column refers to the sample name in the *input* file [cM/MB] or [count]|
 |.. | **SingleSNPinfo.txt** file:|
 |Chr	| The chromosome the SNP is located on |
 |POS	| The physical position of the SNP [bp]|
@@ -286,42 +286,47 @@ The code will generate 3 output files in your current work folder (*the informat
 
 ## What was created and how to interpret the results?
 
-The main results are stored in *RecRate.txt*. Here, the recombination rate in genomic windows of the selected size are stored for each tested population. 
-The *recombination rates* are aligned across all samples by the *Group + Chr* identifer. So you can compare the *recombination rate* directly from one sample to another without need for positional sorting. These results can be plotted to file by `plotRecRate.R`
+The main results are stored in *RecRate.txt*. Here, the recombination rate in genomic windows of the selected size is stored for each tested population. 
+The *recombination rates* are aligned across all samples by the *Group + Chr* identifier. So you can compare the *recombination rate* directly from one sample to another without the need for positional sorting. These results can be plotted to file by `plotRecRate.R`
 
 Supplementary results are stored in *Markercount.txt* and *SingleSNPinfo.txt*.
 
-*Markercount.txt* derived the information of the number of SNPs aggregated together to a *Group*. From all these SNPs, the median *recombination rate* in *RecRate.txt* was calculated. 
+*Markercount.txt* derived the information of the number of SNPs aggregated together to a *Group*. The median *recombination rate* in *RecRate.txt* was calculated from all these SNPs. 
 
-*SingleSNPinfo.txt* has stored the **raw data**. Each SNPs allele frequency, recombination rate and genetic map position are stored seperatly for each sample.
+*SingleSNPinfo.txt* has stored the **raw data**. Each SNPs allele frequency, recombination rate and genetic map position are stored separatly for each sample.
 
 
-## How to interprete / scale the output?
+## How to interpret / scale the output?
 
-Although you might have tried to take care of avoiding sequencing bias by following the pipeline above, you might end up with values far above your expectations. 
+Although you might have tried to avoid sequencing bias by following the pipeline above, you might end up with values far above your expectations. 
 
 What went wrong? 
 
 By the filtering and cleaning pipeline, we only took care of the inter-sample bias. So all steps performed above were meant to remove technical biases from one sample to the other, so that you can compare all of them to each other, without any problems. 
 
-Still, we might have a genetic maps that ranges from 0 to 2,000, 3,000, 20,000 or even 2,000,000 cM, depending on your data. Obviously these absolute numbers are incorrect. What is correct is the relative values from one sample to another. 
+Still, we might have a genetic map that ranges from 0 to 2,000, 3,000, 20,000 or even 2,000,000 cM, depending on your data. Obviously, these absolute numbers are incorrect. What is correct is the relative values from one sample to another. 
 
-So wenn you observe **sample1'** *SNP300* genetic position of 2,500 cM you can compare it strait to **sample2'** *SNP300* genetic position, which might be 2,100 cM. So we can say we observed more recombination activity in **sample1** than **sample2**.
+So when you observe **sample1'** *SNP300* genetic position of 2,500 cM you can compare it strait to **sample2'** *SNP300* genetic position, which might be 2,100 cM. So we can say we observed more recombination activity in **sample1** than **sample2**.
 
 Okay, but why were these values not adjusted by the `popRR` function in the first place?
 
-Of course, our goal was to generate an exact 1:1 copy of *Haldane* recombination rate estimates from pool sequencing data. But as sequencing result might differ between applied methods, amount of DNA, sequencing depth, and people might treat their data differently, we could not figure out a model to obey for all these variables. 
+Of course, our goal was to generate an exact 1:1 copy of *Haldane* recombination rate estimates with this pool sequencing approach. But as sequencing results might differ between applied methods, amount of DNA, sequencing depth, and people might treat their data differently, we could not figure out a model to obey for all these variables. 
 
 Therefore, we suggest the following when you want to scale down your recombination rate estimations:
 
 1. Check out the literature and find genetic maps in your species or related species and investigate what is the maximal genetic position reported - e.g. *350 cM*
-2. Serach in your *SingleSNPinfo.txt* file in column `GeneticMapPosition` for the biggest value. The R code might look like `max(result$SingleSNPinfo$GeneticMapPosition)` - the value might be, e.g. 5940
+2. Search in your *SingleSNPinfo.txt* file in column `GeneticMapPosition` for the biggest value. The R code might look like `max(result$SingleSNPinfo$GeneticMapPosition)` - the value might be, e.g. 5940
 3. Divide the maximal literature derived value (*350*) by the maximal position value in your table (*5940*) => `350 / 5940 = 0.0589 `
 4. The retained value *0.0589* is your correction value - multiply this value to your *recombination rate values* and the *genetic map positions*
     - `result$SingleSNPinfo$GeneticMapPosition = result$SingleSNPinfo$GeneticMapPosition * 0.0589`
     - `result$SingleSNPinfo$RR = result$SingleSNPinfo$RR * 0.0589`
-        - You still observe really high *recombination rate* values for single SNPs? That why we focus on the median in genomic windows in *RecRate.txt*
+        - You still observe high *recombination rate* values for single SNPs? That's why we focus on the median in genomic windows in *RecRate.txt*
     - `rr2 = apply(results$RecRate[,-c(1:3)], 2, function(x) x * 0.0589); results$RecRate = results$RecRate[,c(1:3)], rr2)`
+        - You checked out the result of the adjustment and still found some *Groups* to have *cM/MB* rates beyond 10, maybe 100? That can occur.
+            - The most recommended solution to this problem is to increase your genomic window size
+            - if only single *Groups* tend to have different values, you might check how many SNPs are located in this group by examining *Markercount.txt*. If indeed only few SNPs are loacted in this *Group*, you can savely remove the recombination rate. Our approach faciliates from many SNP loci tagged and aggregated to *Groups*, so as more SNPs a *Group* has, as more precise the result will be.
+                - What is a good cut-off value for SNP count per *Group*?
+                    - we cannot give you a solid answer to that, sorry. It depends on the interplay of the read coverage level you chose to sequence and the SNP count. So generally spoken, as higher the per locus sequencing depth, as lower the SNP count per *Group* can become.
 
 
 ### Generating a first overview plot
@@ -332,7 +337,7 @@ before executing the script, run `install.packages(c("ggplot2", "data.table", "p
 
 The R script is executed again in the shell via `Rscript ../generateOverview.R ./RecRate.txt` 
 
-It will produce a figure as shownb below
+It will produce a figure as shown below
 
 ![examplePlot](https://github.com/mischn-dev/popRR/blob/mischn-dev/popRR/example/RecombinationRate_plot.png)
 
