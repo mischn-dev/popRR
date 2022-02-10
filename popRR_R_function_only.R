@@ -1,31 +1,3 @@
-## load packages 
-# data.table
-if (any(installed.packages()[,1] == "data.table")) { 
-  library(data.table)
-  
-}else{
-  install.packages("data.table")
-  library(data.table)
-}
-
-# stringr
-if (any(installed.packages()[,1] == "data.table")) { 
-  library(stringr)
-  
-}else{
-  install.packages("stringr")
-  library(stringr)
-}
-
-### example call style 
-## input values 
-#input = "D:/GeneticMapProject/4-SimReads/SNPcalling/outfile.AD.FORMAT"
-#windowsize = 50 # in MB 
-#Popsize = c(300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50, 300, 100, 50) # population size 
-
-# result = popRR(input, windowsize, Popsize)
-
-
 popRR = function(input, windowsize=10, Popsize){
   
   
