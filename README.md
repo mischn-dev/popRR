@@ -8,8 +8,11 @@ Highly similarities regarding the recombination rate were observed comparing thi
 
 ## Requirements / experimental set up 
 
-- a crossing population beyond F2
+- a crossing population in generaton F2 and later
 - the sampling of a representative number of genotypes for each population ( e.g., in a population of 10,000 siblings, 200 to 500 genotypes should be selected for testing)
+    - find further details in 
+        *Cochran WG, Wiley J, York N, Chichester •, Brisbane •, Toronto •, et al. Sampling Techniques third edition. 1977*
+        or <>
 - a **reference genome**
 - whole genome pool sequencing data with a decent coverage per locus (50x are advised; see https://github.com/mischn-dev/HAFcall if you are planning to reduce sequencing levels to 5 or 10x)
     - one pool per population (or you create additional replications - we advise you to use different genotypes for each replicate created)
@@ -30,9 +33,14 @@ For complex plant genomes like maize, barley, or wheat, we observed *bwa* and *b
 - low-quality alignments
 - duplicated fragments
 
-Contrasting to the typical variant calling of homozygote genotypes, we need to make sure the ratio of *reference* to *alternative* base calls is as unbiased as possible.
+**should be removed**
 
-We will generally expect `REF/ALT` variant calls of `20/30` or `10/40`, contrasting to `2/48` - what we would expect for a homozygote single genotyping.
+
+Contrasting to the typical variant calling of homozygote genotypes, we need to make sure the detected ratio of *reference* to *alternative* base calls is as unbiased as possible. I
+
+Ideally, the observed allele distribution is similar to the true distribution
+
+Generally `REF/ALT` variant calls of `20/30` or `10/40`, contrasting to `2/48` are expected - the latter we would expect when genotyping homozygote single individuals.
 
 So it is very crucial to maintain high quality from the alignment and the variant calling, as biases introduced by the alignment might directly impact the accuracy of the recombination rate estimation.
 
@@ -73,11 +81,13 @@ What does -F 2034 mean? - have a look here <https://broadinstitute.github.io/pic
 
 ### **Variant calling**
 
-If possible, call the variants of *all* pool samples in one run.
+If possible, call the variants of *all* pool samples in one run. 
+
+Why? Because variant callers become more powerful as more data is provided. Multisample variant calling >> single sample variant valling
 
 The recombination rate estimation for each variant locus depends on the **allelic depth** tag *AD*, so ensure your chosen variant caller supports this output format. *Bcftools* is the option used in the procedure of validating popRR.
 
-The code to generate the variant calls with *bcftools* is:
+The code to generate the variant calls using *bcftools* is:
 
 ```
 # define the input variables
@@ -90,6 +100,8 @@ bcftools mpileup -Ov -q 25 -Q 30 -a FORMAT/AD -I -f $REF $mydir/*filtered_sorted
 **Additional hints for the SNP calling:**
 - if available, use an *SNP reference map*, like <http://ftp.ensemblgenomes.org/pub/plants/release-52/variation/vcf/hordeum_vulgare/>
     - this is helpful to avoid false positive detections and will improve the overall recombination rate accuracy
+    - use the `--regions-file` flag to include a *bed* position file in the variant calling
+        - find more information here <https://samtools.github.io/bcftools/bcftools.html#common_options>
 - exclude Indels, as these tend to have higher false-positive rates
 
 
@@ -97,10 +109,10 @@ bcftools mpileup -Ov -q 25 -Q 30 -a FORMAT/AD -I -f $REF $mydir/*filtered_sorted
 ## Variant filtering and data preparation
 
 
-To fit into the desired data format and filter out low-quality SNPs, the uncompressed variant calling format (*vcf*) files must be processed. 
+To fit into the desired data format and filter out low-quality SNPs, the variant calling format (*vcf*) files must be processed. 
 
 You can use either `bcftools` or `vcftools` (<http://vcftools.sourceforge.net/>) to complete the task.
-Use on of either function:
+Use one of either function:
 ```
 # the vcftools way 
 vcftools --vcf variants.vcf --out outfFileName --max-alleles 2 --min-alleles 2 --minQ 40 --extract-FORMAT-info AD
@@ -114,12 +126,12 @@ bcftools query -i 'QUAL>40' -f '%CHROM\t%POS\t[%AD\t]\n' -o outFileName.vcf vari
 Besides the *Position* (Chromosome and physical position on the reference genome), the *allelic depth AD* is required for each sample.
 
 The final table should look like:
-| CHROM | POS  | Sample1  | Sample2 | Sample3 |
-| ------- | --- | --- | --- | --- |
-chr2 |	268269	|127,98 | 	175,128	|187,119 |
-chr2 |	352795	| 133,79	| 190,173	| 214,159 |
-chr3 |	556914877 | 116,111 |	133,178 |	159,157 |
-chr5 |	582298638 | 120,115	| 157,145 |	147,153|
+| CHROM | POS  | Sample1  | Sample2 | Sample3 | .. |
+| ------- | --- | --- | --- | --- | --- |
+chr2 |	268269	|127,98 | 	175,128	|187,119 | .. |
+chr2 |	352795	| 133,79	| 190,173	| 214,159 | .. |
+chr3 |	556914877 | 116,111 |	133,178 |	159,157 | .. |
+chr5 |	582298638 | 120,115	| 157,145 |	147,153| .. |
 
 
 The names of your *samples* can also look like `/Data/recrate/sample1` instead of `Sample1` - both are fine
@@ -130,24 +142,7 @@ The names of your *samples* can also look like `/Data/recrate/sample1` instead o
 
 You have the choice to run *popRR* either in `julia` or `R`. The result is the same, but the computational time is quite drastically decreased in the `julia` environment (about 20 to 100 times faster)
 
-So our recommendation: use the julia function package - save some energy and resources by smart programming :)
-
-To run the `julia` code, you need to install some required packages.
-
-How it is done is illustrated in this video:
-
-![](https://github.com/mischn-dev/popRR/blob/docs/install_juliaPackages.gif)
-
-Run `using Pkg; Pkg.add(["DataFrames", "Statistics", "CSV", "StatsBase"])` in your terminal after opening `julia`
-
- **HINT** stating `julia -t 4` will make julia running with 4 threads - this will speed things up 
-
- chose as many cores as you desire to use or your computer provides
-
-
-### Running the recombination rate estimation in julia environment by terminal 
-
-3 inputs have to be specified:
+### **3 inputs have to be specified (*in this exact order*):**
 
 1. the path to the *outFileName.vcf* generated previously
 2. the window size in megabase pairs (e.g. 10) 
@@ -158,13 +153,32 @@ Run `using Pkg; Pkg.add(["DataFrames", "Statistics", "CSV", "StatsBase"])` in yo
     - in the scenario where each population consists of different numbers of genotypes, provide a vector of values with a similar length to numbers sampled - e.g. 
         - find an example here: <https://github.com/mischn-dev/popRR/blob/mischn-dev/popRR/example/samplelist_unique_value_for_each_sample.txt>
 
+
+### Get started with julia 
+
+To run the `julia` code, you need to install some required packages.
+
+How the package installation is done is illustrated in this video:
+
+![](https://github.com/mischn-dev/popRR/blob/docs/install_juliaPackages.gif)
+
+Run `using Pkg; Pkg.add(["DataFrames", "Statistics", "CSV", "StatsBase"])` in your terminal after opening `julia`
+
+ **HINT** stating `julia -t 4` will make julia running with 4 threads - this will speed things up 
+
+ chose as many cores as you desire to use or your computer provides
+
+
+### Perform the recombination rate estimation in `julia` environment via shell 
+
+
 The code in the `terminal` might look like:
 
  ![](https://github.com/mischn-dev/popRR/blob/docs/run_popRR_terminal_julia.gif)
 
 ```
 # 20 threads used to speed up 
-julia -t 20 popRR_julia.jl outFileName.vcf 5 300
+julia -t 20 popRR_julia.jl ./outFileName.vcf 5 ./samplelist_unique_value_for_each_sample.txt
 
 # works the same way in linux terminal & windows command line
 ```
@@ -174,9 +188,38 @@ The script performs a transformation of the *recombination rate* in accordance t
 ![Formula](https://github.com/mischn-dev/popRR/blob/mischn-dev/popRR/docs/adjustment_formula.jpg)
 
 
+### Perform the recombination rate estimation in the `R` environment via `Rscript`
+
+The `Rscript` version of popRR works 1:1 identical as the `julia` code above 
+
+Just type `Rscript /mnt/d/GeneticMapProject/zz-github/popRR_R.R ../../outFileName.vcf 5 ../../samplelist_unique_value_for_each_sample.txt ` to your shell terminal and execute it
+
+
+### Perform the recombiation rate estimation in native `R`
+
+- download <https://github.com/mischn-dev/popRR/blob/main/popRR_R_function_only.R>
+- open `RStudio` or `R` and load function `popRR` in the global environment
+- execute `popRR` by writing:
+
+```
+# define the variables
+input = "../../outFileName.vcf" # path to file
+windowsize = 50 # in MB 
+Popsize = "../../sampleList.txt" # population size file location
+
+# run the function and store the output to "result"
+result = popRR(input, windowsize, Popsize)
+
+# check out result by 
+result$Recrate
+result$Markercount
+result$SingleSNPinfo
+```
+
+
 ## Output 
 
-The code will generate 3 output files in your current work folder (*the info of your folder will be printed to the screen*);
+The code will generate 3 output files in your current work folder (*the information which folder this is will be printed to the screen*);
 
 1. ***RecRate.txt***
 
@@ -199,23 +242,24 @@ The code will generate 3 output files in your current work folder (*the info of 
     | .. | .. | .. | .. | .. | .. | 
     | 60 | chr5 | 7000000 | 501 | 620 | 488 |
 
-
     In *RecRate.txt* and *Markercount.txt*, you might observe `NA` values for a Group:Sample combination - this means there were no SNPs observed in this *Group* for the particular sample
+
+
 
 
 3. ***SingleSNPinfo.txt***
 
-    |Chr |POS	|Readcount	|Ref	|Alt	|DistReal	|GeneticMapPosition |RR	|sample   |
-    | ----- | ---- | ---- | ------- | ------- | ------- | --- | --- | --- | 
-    | chr2 |	268269	| 225	| 0.5644 | 0.4355	| 0.0 | 0.0	| 0.0	| *sample1* |
-    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
-    | chr2H |	352927 |	227	 | 0.5726 |	0.4273	| 132.0 |	3.659	| 2.3 | *sample1*
-    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
-    | chr2H |	485482145 |	154	 | 0.4289 |	0.5711	| 4500 |	158.45	| 1.1 | *sample1*
-    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
-    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
-    | chr2 |	352927	| 221	| 0.5342 | 0.4658	| 132.0 | 2.112	| 1.12	| *sample2* |
-    | .. | .. | .. | .. | .. | .. | .. | .. | ..| 
+    |Chr |POS	|Readcount	|Ref	|Alt	|GeneticMapPosition |RR	|sample   |
+    | ----- | ---- | ---- | ------- |  ------- | --- | --- | --- | 
+    | chr2 |	268269	| 225	| 0.5644 | 0.4355	 0.0	| 0.0	| *sample1* |
+    | .. | .. | .. | .. | .. | .. | .. | .. | 
+    | chr2H |	352927 |	227	 | 0.5726 |	0.4273	|	3.659	| 2.3 | *sample1*
+    | .. | .. | .. | .. | .. | .. | .. | .. | 
+    | chr2H |	485482145 |	154	 | 0.4289 |	0.5711	|	158.45	| 1.1 | *sample1*
+    | .. | .. | .. | .. | .. | .. | .. | .. |
+    | .. | .. | .. | .. | .. | .. | .. | .. | 
+    | chr2 |	352927	| 221	| 0.5342 | 0.4658| 2.112	| 1.12	| *sample2* |
+    | .. | .. | .. | .. | .. | .. | .. | .. | 
     
 
 
@@ -225,17 +269,70 @@ The code will generate 3 output files in your current work folder (*the info of 
 
 | Column name | Description |
 | --- | --- |
-| Group           | The genomic block, according to chromosome, physical position and the selected window size|
+| Group           | The genomic block, according to chromosome, physical position and the selected window size [id]|
 | Chr             | The chromosome the *Group* is located on |
-| pos             | The mean Position of SNPs aggregated to a *Group*|
-| Sample 1..to..X | The *median recombination rate* or *sum of SNPs* in the *Group*, each sample's value is reported in a seperate column. The name of the column refers to the sample name in the *input* file|
+| pos             | The mean Position of SNPs aggregated to a *Group* [bp]|
+| Sample 1..to..X | The *median recombination rate* or *sum of SNPs* in the *Group*, each sample's value is reported in a seperate column. The name of the column refers to the sample name in the *input* file [cM/MB] or [count]|
 |.. | **SingleSNPinfo.txt** file:|
 |Chr	| The chromosome the SNP is located on |
-|POS	| The physical position of the SNP |
-|Readcount	| The number of reads covering this locus|
-|Ref	| the allele frequency of the *reference* allele |
-|Alt	| the allele frequency of the *alternative* allele |
-|GeneticMapPosition | The genetic position of the SNP | 
-|RR	 | The recombination rate observed for this SNP |
-|sample    | The sample in which this information was collected - analog to *Sample 1 ..to..X*|
+|POS	| The physical position of the SNP [bp]|
+|Readcount	| The number of reads covering this locus [count]|
+|Ref	| the allele frequency of the *reference* allele [ *100 = %]|
+|Alt	| the allele frequency of the *alternative* allele [ *100 = %]|
+|GeneticMapPosition | The genetic position of the SNP [cM] | 
+|RR	 | The recombination rate observed for this SNP [cM/MB] |
+|sample    | The sample in which this information was collected - analog to *Sample 1 ..to..X* [id] |
+
+
+## What was created and how to interpret the results?
+
+The main results are stored in *RecRate.txt*. Here, the recombination rate in genomic windows of the selected size are stored for each tested population. 
+The *recombination rates* are aligned across all samples by the *Group + Chr* identifer. So you can compare the *recombination rate* directly from one sample to another without need for positional sorting. These results can be plotted to file by `plotRecRate.R`
+
+Supplementary results are stored in *Markercount.txt* and *SingleSNPinfo.txt*.
+
+*Markercount.txt* derived the information of the number of SNPs aggregated together to a *Group*. From all these SNPs, the median *recombination rate* in *RecRate.txt* was calculated. 
+
+*SingleSNPinfo.txt* has stored the **raw data**. Each SNPs allele frequency, recombination rate and genetic map position are stored seperatly for each sample.
+
+
+## How to interprete / scale the output?
+
+Although you might have tried to take care of avoiding sequencing bias by following the pipeline above, you might end up with values far above your expectations. 
+
+What went wrong? 
+
+By the filtering and cleaning pipeline, we only took care of the inter-sample bias. So all steps performed above were meant to remove technical biases from one sample to the other, so that you can compare all of them to each other, without any problems. 
+
+Still, we might have a genetic maps that ranges from 0 to 2,000, 3,000, 20,000 or even 2,000,000 cM, depending on your data. Obviously these absolute numbers are incorrect. What is correct is the relative values from one sample to another. 
+
+So wenn you observe **sample1'** *SNP300* genetic position of 2,500 cM you can compare it strait to **sample2'** *SNP300* genetic position, which might be 2,100 cM. So we can say we observed more recombination activity in **sample1** than **sample2**.
+
+Okay, but why were these values not adjusted by the `popRR` function in the first place?
+
+Of course, our goal was to generate an exact 1:1 copy of *Haldane* recombination rate estimates from pool sequencing data. But as sequencing result might differ between applied methods, amount of DNA, sequencing depth, and people might treat their data differently, we could not figure out a model to obey for all these variables. 
+
+Therefore, we suggest the following when you want to scale down your recombination rate estimations:
+
+1. Check out the literature and find genetic maps in your species or related species and investigate what is the maximal genetic position reported - e.g. *350 cM*
+2. Serach in your *SingleSNPinfo.txt* file in column `GeneticMapPosition` for the biggest value. The R code might look like `max(result$SingleSNPinfo$GeneticMapPosition)` - the value might be, e.g. 5940
+3. Divide the maximal literature derived value (*350*) by the maximal position value in your table (*5940*) => `350 / 5940 = 0.0589 `
+4. The retained value *0.0589* is your correction value - multiply this value to your *recombination rate values* and the *genetic map positions*
+    - `result$SingleSNPinfo$GeneticMapPosition = result$SingleSNPinfo$GeneticMapPosition * 0.0589`
+    - `result$SingleSNPinfo$RR = result$SingleSNPinfo$RR * 0.0589`
+        - You still observe really high *recombination rate* values for single SNPs? That why we focus on the median in genomic windows in *RecRate.txt*
+    - `rr2 = apply(results$RecRate[,-c(1:3)], 2, function(x) x * 0.0589); results$RecRate = results$RecRate[,c(1:3)], rr2)`
+
+
+### Generating a first overview plot
+
+The script <https://github.com/mischn-dev/popRR/blob/main/generateOverview.R> will create a figure that allows to assess the results quickly
+
+before executing the script, run `install.packages(c("ggplot2", "data.table", "plyr", "gridExtra"))` to install all required packages
+
+The R script is executed again in the shell via `Rscript ../generateOverview.R ./RecRate.txt` 
+
+It will produce a figure as shownb below
+
+![examplePlot](https://github.com/mischn-dev/popRR/blob/mischn-dev/popRR/example/RecombinationRate_plot.png)
 
