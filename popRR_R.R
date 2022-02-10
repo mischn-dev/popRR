@@ -279,4 +279,5 @@ write.table(result$Recrate, w1, quote = F, row.names = F)
 write.table(result$Markercount, w2, quote = F, row.names = F)
 write.table(result$SingleSNPinfo, w3, quote = F, row.names = F)
 
+print(paste("Calculation finished, the files were stored in", loc))
 
